@@ -18,6 +18,6 @@ VALUES
   ('Davi', 'Njoku', 1, 7),  -- role_id 1: Software Engineer, manager_id 7: Kevin Stefanski
   ('Myles', 'Garret', 1, 7),  -- role_id 1: Software Engineer, manager_id 7: Kevin Stefanski
   ('Deshaun', 'Watson', 1, 7),  -- role_id 1: Software Engineer, manager_id 7: Kevin Stefanski
-  ('Nick', 'Chubb', 3, 8), -- role_id 3: Manager, manager_id 8: Kevin Stefanski
+  ('Nick', 'Chubb', 3, 7), -- role_id 3: Manager, manager_id 7: Kevin Stefanski
   ('Kevin', 'Stefanski', 3, NULL); -- role_id 3: Manager
 
