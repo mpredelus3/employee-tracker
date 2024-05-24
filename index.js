@@ -15,6 +15,7 @@ const mainMenu = () => { // creates the prompt that will show up in the command 
                 'Add a department',
                 'Add a role',
                 'Add an employee',
+                'Update an employee',
                 'Update an employee role',
                 'Delete',
                 'Exit'
@@ -39,6 +40,9 @@ const mainMenu = () => { // creates the prompt that will show up in the command 
                 break;
             case 'Add an employee':
                 addEmployee();
+                break;
+            case 'Update an employee':
+                updateEmployee();
                 break;
             case 'Update an employee role':
                 updateEmployeeRole();
@@ -190,11 +194,47 @@ const addEmployee = () => {
     });
 };
 
-const updateEmployeeRole = () => {
+const updateEmployee = () => {
     client.query('SELECT id, first_name, last_name FROM employee', (err, res) => {
         if (err) throw err;
         if (res.rows.length === 0) {
             console.log('There are no employees to update.');
+            mainMenu();
+            return;
+        }
+        const employees = res.rows.map(row => ({ name: `${row.first_name} ${row.last_name}`, value: row.id }));
+        client.query('SELECT id, title FROM role', (err, res) => {
+            if (err) throw err;
+            const roles = res.rows.map(row => ({ name: row.title, value: row.id }));
+            inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'employee_id',
+                    message: 'Select the employee to update:',
+                    choices: employees
+                },
+                {
+                    type: 'list',
+                    name: 'role_id',
+                    message: 'Select the new role for the employee:',
+                    choices: roles
+                }
+            ]).then(answer => {
+                client.query('UPDATE employee SET role_id = $1 WHERE id = $2', [answer.role_id, answer.employee_id], (err, res) => {
+                    if (err) throw err;
+                    console.log('Employee role updated successfully.');
+                    mainMenu();
+                });
+            });
+        });
+    });
+};
+
+const updateEmployeeRole = () => {
+    client.query('SELECT id, first_name, last_name FROM employee', (err, res) => {
+        if (err) throw err;
+        if (res.rows.length === 0) {
+            console.log('There are no employee roles to update.');
             mainMenu();
             return;
         }
@@ -251,6 +291,8 @@ const deleteEntry = () => {
         }
     });
 };
+
+
 
 const deleteDepartment = () => {
     client.query('SELECT id, name FROM department', (err, res) => {
