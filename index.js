@@ -1,5 +1,3 @@
-require('console.table');
-
 const inquirer = require('inquirer')
 const client = require('./db'); // database connection
 
@@ -18,6 +16,7 @@ const mainMenu = () => { // creates the prompt that will show up in the command 
                 'Add a role',
                 'Add an employee',
                 'Update an employee role',
+                'Delete',
                 'Exit'
             ]
         }
@@ -43,6 +42,9 @@ const mainMenu = () => { // creates the prompt that will show up in the command 
                 break;
             case 'Update an employee role':
                 updateEmployeeRole();
+                break;
+            case 'Delete':
+                deleteEntry();
                 break;
             case 'Exit':
                 client.end();
@@ -82,8 +84,8 @@ const viewAllRoles = () => {
 
 const viewAllEmployees = () => {
     const query = `
-    SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary
-    CONCAT(manager.first_namr, ' ', manager.last_name) AS manager
+    SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary,
+    CONCAT(manager.first_name, ' ', manager.last_name) AS manager
     FROM employee
     JOIN role ON employee.role_id = role.id
     JOIN department ON role.department_id = department.id
@@ -91,12 +93,15 @@ const viewAllEmployees = () => {
 
     client.query(query, (err, res) => {
         if (err) throw err;
-        console.table(res.rows);
+        const employees = res.rows.map(row => [row.id, row.first_name, row.last_name, row.title, row.department, row.salary, row.manager]);
+        console.log('\nEmployees:\n');
+        console.log('ID\tFirst Name\tLast Name\tTitle\tDepartment\tSalary\tManager');
+        employees.forEach(employee => console.log(employee.join('\t')));
         mainMenu();
     });
 };
 
-const addDepartment = () => { //one of 3 add functions (addRole and addEmployee) that prompts for input to the database
+const addDepartment = () => {
     inquirer.prompt([
         {
             type: 'input',
@@ -106,7 +111,7 @@ const addDepartment = () => { //one of 3 add functions (addRole and addEmployee)
     ]).then(answer => {
         client.query('INSERT INTO department (name) VALUES ($1)', [answer.name], (err, res) => {
             if (err) throw err;
-            console.log('Department added succesfulluy.');
+            console.log('Department added successfully.');
             mainMenu();
         });
     });
@@ -185,9 +190,14 @@ const addEmployee = () => {
     });
 };
 
-const updateEmployeeRole = () => { //prompts the user to select an employee and a new role, then updates the role of the employee in the database
+const updateEmployeeRole = () => {
     client.query('SELECT id, first_name, last_name FROM employee', (err, res) => {
         if (err) throw err;
+        if (res.rows.length === 0) {
+            console.log('There are no employees to update.');
+            mainMenu();
+            return;
+        }
         const employees = res.rows.map(row => ({ name: `${row.first_name} ${row.last_name}`, value: row.id }));
         client.query('SELECT id, title FROM role', (err, res) => {
             if (err) throw err;
@@ -215,5 +225,111 @@ const updateEmployeeRole = () => { //prompts the user to select an employee and 
         });
     });
 };
+
+const deleteEntry = () => {
+    inquirer.prompt([
+        {
+            type: 'list',
+            name: 'option',
+            message: 'What would you like to delete?',
+            choices: ['Department', 'Role', 'Employee']
+        }
+    ]).then(answer => {
+        switch (answer.option) {
+            case 'Department':
+                deleteDepartment();
+                break;
+            case 'Role':
+                deleteRole();
+                break;
+            case 'Employee':
+                deleteEmployee();
+                break;
+            default:
+                console.log('Invalid option.');
+                mainMenu();
+        }
+    });
+};
+
+const deleteDepartment = () => {
+    client.query('SELECT id, name FROM department', (err, res) => {
+        if (err) throw err;
+        if (res.rows.length === 0) {
+            console.log('There are no departments to delete.');
+            mainMenu();
+            return;
+        }
+        const departments = res.rows.map(row => ({ name: row.name, value: row.id }));
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'department_id',
+                message: 'Select the department to delete:',
+                choices: departments
+            }
+        ]).then(answer => {
+            client.query('DELETE FROM department WHERE id = $1', [answer.department_id], (err, res) => {
+                if (err) throw err;
+                console.log('Department deleted successfully.');
+                mainMenu();
+            });
+        });
+    });
+};
+
+const deleteRole = () => {
+    client.query('SELECT id, title FROM role', (err, res) => {
+        if (err) throw err;
+        if (res.rows.length === 0) {
+            console.log('There are no roles to delete.');
+            mainMenu();
+            return;
+        }
+        const roles = res.rows.map(row => ({ name: row.title, value: row.id }));
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'role_id',
+                message: 'Select the role to delete:',
+                choices: roles
+            }
+        ]).then(answer => {
+            client.query('DELETE FROM role WHERE id = $1', [answer.role_id], (err, res) => {
+                if (err) throw err;
+                console.log('Role deleted successfully.');
+                mainMenu();
+            });
+        });
+    });
+};
+
+const deleteEmployee = () => {
+    client.query('SELECT id, first_name, last_name FROM employee', (err, res) => {
+        if (err) throw err;
+        if (res.rows.length === 0) {
+            console.log('There are no employees to delete.');
+            mainMenu();
+            return;
+        }
+        const employees = res.rows.map(row => ({ name: `${row.first_name} ${row.last_name}`, value: row.id }));
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employee_id',
+                message: 'Select the employee to delete:',
+                choices: employees
+            }
+        ]).then(answer => {
+            client.query('DELETE FROM employee WHERE id = $1', [answer.employee_id], (err, res) => {
+                if (err) throw err;
+                console.log('Employee deleted successfully.');
+                mainMenu();
+            });
+        });
+    });
+};
+
+
 
 mainMenu();
