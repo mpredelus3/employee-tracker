@@ -85,10 +85,9 @@ const viewAllRoles = () => {
     });
 };
 
-
 const viewAllEmployees = () => {
     const query = `
-    SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary,
+    SELECT employee.id, employee.first_name, employee.last_name, role.title AS title, department.name AS department, role.salary,
     CONCAT(manager.first_name, ' ', manager.last_name) AS manager
     FROM employee
     JOIN role ON employee.role_id = role.id
@@ -104,6 +103,8 @@ const viewAllEmployees = () => {
         mainMenu();
     });
 };
+
+
 
 const addDepartment = () => {
     inquirer.prompt([
@@ -223,12 +224,14 @@ const updateEmployee = () => {
                 client.query('UPDATE employee SET role_id = $1 WHERE id = $2', [answer.role_id, answer.employee_id], (err, res) => {
                     if (err) throw err;
                     console.log('Employee role updated successfully.');
+                    
                     mainMenu();
                 });
             });
         });
     });
 };
+
 
 const updateEmployeeRole = () => {
     client.query('SELECT id, first_name, last_name FROM employee', (err, res) => {
